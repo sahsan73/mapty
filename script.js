@@ -81,7 +81,11 @@ class App {
   #workouts = [];
 
   constructor() {
+    // Get user's position
     this._getPosition();
+
+    // Get data from local storage
+    this._getLocalStorage();
 
     /* Whenever we hit "Enter" key in any of the input field
      * element, a submit event gets triggered!
@@ -154,6 +158,9 @@ class App {
      * The "on" method is coming from Leaflet library itself!
      */
     this.#map.on("click", this._showForm.bind(this));
+
+    /* Render markers retrived from local storage */
+    this.#workouts.forEach(work => this._renderWorkoutMarker(work));
   }
 
   _showForm(mapE) {
@@ -251,6 +258,9 @@ class App {
 
     // Hide form + Clear input fields
     this._hideForm();
+
+    // Set local storage to all workouts
+    this._setLocalStorage();
   }
 
   _renderWorkoutMarker(workout) {
@@ -351,6 +361,58 @@ class App {
         duration: 1,
       },
     });
+  }
+
+  _setLocalStorage() {
+    /* "localStorage" is an API that the browser provides for us. MUST
+     * BE USED TO STORED VERY SMALL AMOUNT OF DATA. The "localStorage"
+     * is synchronous(blocking) API, so should be used carefully!
+     *
+     * The "setItem" takes two parameters, one for key and another
+     * for value as it stores like key-value pair. And both key and
+     * value must be strings.
+     *
+     * Location: Page Inspection > Application > Local Storage(left side panel)
+     */
+    localStorage.setItem("workouts", JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStorage() {
+    /*
+     * If you look at the objects in the data list, you'll see that they are SIMPLE
+     * objects which have NO types like "Workout", "Running", etc. Also lost the
+     * prototypal inheritance, may result in errors while accessing inherited methods.
+     *        So, converting the objects to JSON strings and then back to objects
+     * should be done very carefully!
+     *
+     * We could do some workaround to retrive our original objects, but will in some
+     * other projects
+     */
+    const data = JSON.parse(localStorage.getItem("workouts"));
+    // console.log(data);
+    if (!data) return;
+
+    this.#workouts = data;
+
+    this.#workouts.forEach(work => {
+      this._renderWorkout(work);
+
+      /* this will NOT work, and the reason is we're trying to add markers on the map
+       * which has not been loaded yet! This is an asynchronous behavior even though
+       * we invoked "_getLocalStorage" method after "_getPosition" method!
+       *
+       * In the "_renderWorkoutMarker" method, L.marker(...).addTo(this.#map)...
+       *                              the this.#map has NOT been loaded yet!
+       */
+      // this._renderWorkoutMarker(work);
+    });
+  }
+
+  /* WE'LL USE THIS FUNCTIONALITY ON THE WEB PAGE LATER...!!! */
+  reset() {
+    // remove data from the local storage
+    localStorage.removeItem("workouts");
+    location.reload();
   }
 }
 
