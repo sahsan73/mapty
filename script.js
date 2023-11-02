@@ -13,62 +13,94 @@ const inputElevation = document.querySelector(".form__input--elevation");
 
 // console.log(navigator.geolocation);
 
-let map, mapEvent;
+class App {
+  #map;
+  #mapEvent;
 
-// navigator.geolocation.getCurrentPosition(..., ...); // async operation
-navigator.geolocation.getCurrentPosition(function (position) {
-  console.log(position);
-  const { latitude, longitude } = position.coords;
-  console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
-  const coords = [latitude, longitude];
+  constructor() {
+    this._getPosition();
 
-  /* The map method accepts an "id" of an html element inside which the
-   * map will be rendered. And "L" is a namespace of Leaflet library, just
-   * like "Intl" for Interlization.
-   *
-   * The second parameter the "setView" accepts for zoom in/out, larger
-   * value for zoom in and smaller value for zoom out.
-   */
-  map = L.map("map").setView(coords, 13);
-  // console.log(map);
+    /* Whenever we hit "Enter" key in any of the input field
+     * element, a submit event gets triggered!
+     *
+     * Inside the callback function, the "this" keyword will point
+     * to an HTML element where the event listener attached to.
+     */
+    form.addEventListener("submit", this._newWorkout.bind(this));
 
-  /* The map we see on the page is basically made up of small tiles and the
-   * tiles come from the URL ("https://tile.openstreetmap.org/{z}/{x}/{y}.png" <-- openstreetmap
-   * is opensource map, leaflet works with all kinds of map, for e.g., googlemaps).
-   *
-   * We can also use that URL to change the apperance of the map
-   */
-  // L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  L.tileLayer("https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+    /* Whenever we select an option in a <select> element, a "change"
+     * event is triggered!
+     */
+    inputType.addEventListener("change", this._toggleElevationField);
+  }
 
-  // L.marker(coords).addTo(map).bindPopup("You're currently here!").openPopup();
-  /*
-   * We can't simply use "addEventListener" method to listen to events, because we
-   * won't have a way to knowing the coordinates of point where the click event
-   * actually ocurred!
-   *
-   * The "on" method is coming from Leaflet library itself!
-   */
-  map.on(
-    "click",
-    function (mapE) {
-      // console.log(mapEvent);
-      mapEvent = mapE;
-      form.classList.remove("hidden");
-      inputDistance.focus();
-    },
-    function () {
-      alert("Couldn't get your location!");
-    }
-  );
+  _getPosition() {
+    /*
+     * navigator.geolocation.getCurrentPosition(..., ...); // async operation
+     * The callback function "_loadMap" invoked by the "getCurrentPosition" is just like
+     * a regular function call where "this" keyword is set to undefined, so we need to bind
+     * the callback function.
+     */
+    navigator.geolocation.getCurrentPosition(
+      this._loadMap.bind(this),
+      function () {
+        alert("Sorry...! Couldn't get your location");
+      }
+    );
+  }
 
-  /* Whenever we hit "Enter" key in any of the input field
-   * element, a submit event gets triggered!
-   */
-  form.addEventListener("submit", function (e) {
+  _loadMap(position) {
+    // console.log(position);
+    const { latitude, longitude } = position.coords;
+    // console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
+    const coords = [latitude, longitude];
+
+    /* The map method accepts an "id" of an html element inside which the
+     * map will be rendered. And "L" is a namespace of Leaflet library, just
+     * like "Intl" for Interlization.
+     *
+     * The second parameter the "setView" accepts for zoom in/out, larger
+     * value for zoom in and smaller value for zoom out.
+     */
+    this.#map = L.map("map").setView(coords, 13);
+    // console.log(map);
+
+    /* The map we see on the page is basically made up of small tiles and the
+     * tiles come from the URL ("https://tile.openstreetmap.org/{z}/{x}/{y}.png" <-- openstreetmap
+     * is opensource map, leaflet works with all kinds of map, for e.g., googlemaps).
+     *
+     * We can also use that URL to change the apperance of the map
+     */
+    // L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.#map);
+
+    // L.marker(coords).addTo(map).bindPopup("You're currently here!").openPopup();
+    /* HANDLING CLICK EVENTS ON MAP
+     * We can't simply use "addEventListener" method to listen to events, because we
+     * won't have a way to knowing the coordinates of point where the click event
+     * actually ocurred!
+     *
+     * The "on" method is coming from Leaflet library itself!
+     */
+    this.#map.on("click", this._showForm.bind(this));
+  }
+
+  _showForm(mapE) {
+    // console.log(mapEvent);
+    this.#mapEvent = mapE;
+    form.classList.remove("hidden");
+    inputDistance.focus();
+  }
+
+  _toggleElevationField() {
+    inputCadence.closest(".form__row").classList.toggle("form__row--hidden");
+    inputElevation.closest(".form__row").classList.toggle("form__row--hidden");
+  }
+
+  _newWorkout(e) {
     // default behavior of forms is to reload the page after submitting
     // we my do NOT want that...!
     e.preventDefault();
@@ -82,7 +114,7 @@ navigator.geolocation.getCurrentPosition(function (position) {
 
     // after submitting the form, display the marker since we want to display
     // form data on map markers
-    const { lat, lng } = mapEvent.latlng;
+    const { lat, lng } = this.#mapEvent.latlng;
     /* We want to customize the popup message appears on the marker
      * and also the msg disappers as soon as we click for other
      * markers, but we want the popup message to persist!
@@ -96,7 +128,7 @@ navigator.geolocation.getCurrentPosition(function (position) {
      */
     // L.marker([lat, lng]).addTo(map).bindPopup("Workout").openPopup();
     L.marker([lat, lng])
-      .addTo(map)
+      .addTo(this.#map)
       .bindPopup(
         L.popup({
           maxWidth: 250,
@@ -108,13 +140,8 @@ navigator.geolocation.getCurrentPosition(function (position) {
       )
       .setPopupContent("Workout")
       .openPopup();
-  });
-});
+  }
+}
 
-/* Whenever we select an option in a <select> element, a "change"
- * event is triggered!
- */
-inputType.addEventListener("change", function () {
-  inputCadence.closest(".form__row").classList.toggle("form__row--hidden");
-  inputElevation.closest(".form__row").classList.toggle("form__row--hidden");
-});
+// start the application
+const app = new App();
