@@ -13,6 +13,7 @@ const inputElevation = document.querySelector(".form__input--elevation");
 
 // console.log(navigator.geolocation);
 
+// navigator.geolocation.getCurrentPosition(..., ...); // async operation
 navigator.geolocation.getCurrentPosition(
   function (position) {
     console.log(position);
@@ -28,6 +29,7 @@ navigator.geolocation.getCurrentPosition(
      * value for zoom in and smaller value for zoom out.
      */
     const map = L.map("map").setView(coords, 13);
+    // console.log(map);
 
     /* The map we see on the page is basically made up of small tiles and the
      * tiles come from the URL ("https://tile.openstreetmap.org/{z}/{x}/{y}.png" <-- openstreetmap
@@ -41,7 +43,44 @@ navigator.geolocation.getCurrentPosition(
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
-    L.marker(coords).addTo(map).bindPopup("You're currently here!").openPopup();
+    // L.marker(coords).addTo(map).bindPopup("You're currently here!").openPopup();
+    /*
+     * We can't simply use "addEventListener" method to listen to events, because we
+     * won't have a way to knowing the coordinates of point where the click event
+     * actually ocurred!
+     *
+     * The "on" method is coming from Leaflet library itself!
+     */
+    map.on("click", function (mapEvent) {
+      // console.log(mapEvent);
+      const { lat, lng } = mapEvent.latlng;
+
+      /* We want to customize the popup message appears on the marker
+       * and also the msg disappers as soon as we click for other
+       * markers, but we want the popup message to persist!
+       *                We can achieve this by passing-in an options
+       * object!
+       *
+       * "autoClose" and "closeOnClick" are for not to close popups,
+       * and "className" is a css class name for styling the popup.
+       *
+       * "openPopup" is actually the method which opens up the marker!
+       */
+      // L.marker([lat, lng]).addTo(map).bindPopup("Workout").openPopup();
+      L.marker([lat, lng])
+        .addTo(map)
+        .bindPopup(
+          L.popup({
+            maxWidth: 250,
+            minWidth: 100,
+            autoClose: false,
+            closeOnClick: false,
+            className: "running-popup",
+          })
+        )
+        .setPopupContent("Workout")
+        .openPopup();
+    });
   },
   function () {
     alert("Couldn't get your location!");
