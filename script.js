@@ -76,6 +76,7 @@ const inputElevation = document.querySelector(".form__input--elevation");
 
 class App {
   #map;
+  #mapZoomLevel = 13;
   #mapEvent;
   #workouts = [];
 
@@ -94,6 +95,11 @@ class App {
      * event is triggered!
      */
     inputType.addEventListener("change", this._toggleElevationField);
+
+    /* we have to use event delegation (event listener on parent element) because
+     * we don't have the element yet where we want to attach the event listener
+     */
+    containerWorkouts.addEventListener("click", this._moveToPopup.bind(this));
   }
 
   _getPosition() {
@@ -124,7 +130,7 @@ class App {
      * The second parameter the "setView" accepts for zoom in/out, larger
      * value for zoom in and smaller value for zoom out.
      */
-    this.#map = L.map("map").setView(coords, 13);
+    this.#map = L.map("map").setView(coords, this.#mapZoomLevel);
     // console.log(map);
 
     /* The map we see on the page is basically made up of small tiles and the
@@ -277,7 +283,7 @@ class App {
 
   _renderWorkout(workout) {
     let html = `
-      <li class="workout workout--${workout.type}" data-id="1234567890">
+      <li class="workout workout--${workout.type}" data-id="${workout.id}">
         <h2 class="workout__title">Running on April 14</h2>
         <div class="workout__details">
           <span class="workout__icon">${
@@ -324,6 +330,27 @@ class App {
     }
 
     form.insertAdjacentHTML("afterend", html);
+  }
+
+  _moveToPopup(e) {
+    const workoutEl = e.target.closest(".workout");
+    if (!workoutEl) return;
+
+    console.log(workoutEl);
+
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+
+    // console.log(this.#workouts);
+    // console.log(workout);
+
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
   }
 }
 
